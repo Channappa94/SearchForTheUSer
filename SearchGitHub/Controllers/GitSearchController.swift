@@ -15,13 +15,14 @@ class GitSearchController: UIViewController, UITableViewDelegate, UITableViewDat
     @IBOutlet weak var userNameEndURL: UISearchBar?
     
     var finalKeyword : String?
-    var array: [String]  = []
+    var userNameArray: [String]  = []
     var str : String?
     var numberOfRepository : [String] = []
+    var keyWords : String?
     
-
-
-
+    
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         registerCell()
@@ -29,24 +30,26 @@ class GitSearchController: UIViewController, UITableViewDelegate, UITableViewDat
         userNameEndURL?.delegate = self
         
     }
-    var keyWords : String?
+
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         keyWords = userNameEndURL?.text
         finalKeyword = keyWords?.replacingOccurrences(of: " ", with: "+")
         alamoFireOutput()
+        
+
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return array.count
+        return userNameArray.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "AllTheRandomUsers", for: indexPath) as? AllTheRandomUsers else{
             return UITableViewCell()
         }
-        cell.userName?.text = array[indexPath.row]
-        //cell.numberOfRepository?.text = numberOfRepository[indexPath.row]
+        cell.userName?.text = userNameArray[indexPath.row]
+        cell.numberOfRepository?.text = numberOfRepository[indexPath.row]
         return cell
     }
     
@@ -55,7 +58,7 @@ class GitSearchController: UIViewController, UITableViewDelegate, UITableViewDat
     }
     
     func alamoFireOutput(){
-        array.removeAll()
+        userNameArray.removeAll()
         
         guard let url = URL(string: "https://api.github.com/search/users?q=" +  finalKeyword!) else {
             return
@@ -72,16 +75,13 @@ class GitSearchController: UIViewController, UITableViewDelegate, UITableViewDat
                         if let count = feed?.count{
                             for n in 0...count-1{
                                 DispatchQueue.main.async{
-                                self.array.append((feed?[n]["login"] as? String)!)
-                                    print(self.array)
-                                self.tableView?.reloadData()
+                                    self.userNameArray.append((feed?[n]["login"] as? String)!)
+                                    print(self.userNameArray)
                                     self.fetchingNumberOfFollowers()
-
                                 }
                             }
+                            self.tableView?.reloadData()
                         }
-                        
-
                     }catch{
                         print("Error")
                     }
@@ -89,36 +89,36 @@ class GitSearchController: UIViewController, UITableViewDelegate, UITableViewDat
             }
             
         }
-        task.resume()
 
+        
     }
     
     
     func fetchingNumberOfFollowers(){
-
-        for n in 0..<array.count{
-            print("the calue is \(array[n])")
+        print(userNameArray.count)
+        for n in 0..<userNameArray.count{
+            print("the calue is \(userNameArray[n])")
             
-        let url = URL(string: "https://api.github.com/users/" + array[n])
-        let task = URLSession.shared.dataTask(with: url!){(data, response, error) in
-            if error ==  nil{
-                if let unwrappedData = data{
-                    do{
-                        let jsonResult = try JSONSerialization.jsonObject(with: unwrappedData, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
-                        let result = jsonResult?["public_repos"]
-                        print(result)
-                    }catch{
-
+            let url = URL(string: "https://api.github.com/users/" + userNameArray[n])
+            let task = URLSession.shared.dataTask(with: url!){(data, response, error) in
+                if error ==  nil{
+                    if let unwrappedData = data{
+                        do{
+                            let jsonResult = try JSONSerialization.jsonObject(with: unwrappedData, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary
+                            let result = jsonResult?["public_repos"]
+                            self.numberOfRepository.append(result as! String)
+                        }catch{
+                            
+                        }
                     }
                 }
+                
             }
-
-        }
-
-        task.resume()
+            
+            task.resume()
         }
         
-    
+        
     }
     
 }
